@@ -8,7 +8,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- SETTINGS
 local FOV_RADIUS = 120
-local AIM_SMOOTHNESS = 0.15
+local AIM_SMOOTHNESS = 1
 
 -- UI CIRCLE
 local screenGui = Instance.new("ScreenGui")
