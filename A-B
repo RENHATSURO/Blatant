@@ -1,0 +1,124 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- SETTINGS
+local FOV_RADIUS = 120
+local AIM_SMOOTHNESS = 0.15
+
+-- UI CIRCLE
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AimbotUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+local circle = Instance.new("Frame")
+circle.Size = UDim2.new(0, FOV_RADIUS * 2, 0, FOV_RADIUS * 2)
+circle.AnchorPoint = Vector2.new(0.5, 0.5)
+circle.BackgroundTransparency = 1
+circle.Parent = screenGui
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(255,255,255) -- blanc par défaut
+stroke.Parent = circle
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = circle
+
+-- Centre écran
+local function getScreenCenter()
+	local viewport = Camera.ViewportSize
+	local guiInset = GuiService:GetGuiInset()
+
+	return Vector2.new(
+		viewport.X / 2,
+		(viewport.Y / 2) - guiInset.Y
+	)
+end
+
+-- Visibilité (wall check)
+local function isVisible(target)
+	if not target.Character then return false end
+	
+	local head = target.Character:FindFirstChild("Head")
+	if not head then return false end
+
+	local origin = Camera.CFrame.Position
+	local direction = (head.Position - origin)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+	local result = workspace:Raycast(origin, direction, raycastParams)
+
+	if result then
+		return result.Instance:IsDescendantOf(target.Character)
+	end
+
+	return false
+end
+
+-- Trouver cible
+local function getClosestTarget()
+	local closest = nil
+	local shortest = math.huge
+
+	local screenCenter = getScreenCenter()
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local head = player.Character:FindFirstChild("Head")
+			local humanoid = player.Character:FindFirstChild("Humanoid")
+
+			if head and humanoid and humanoid.Health > 0 then
+				local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+
+				if onScreen then
+					local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+
+					if dist < FOV_RADIUS and dist < shortest then
+						if isVisible(player) then
+							shortest = dist
+							closest = player
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return closest
+end
+
+-- Loop principal
+RunService.RenderStepped:Connect(function()
+	local screenCenter = getScreenCenter()
+
+	-- Position cercle
+	circle.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+
+	local target = getClosestTarget()
+
+	if target and target.Character then
+		-- 🔴 CIBLE DÉTECTÉE
+		stroke.Color = Color3.fromRGB(255, 60, 60)
+
+		local head = target.Character:FindFirstChild("Head")
+		if head then
+			local camPos = Camera.CFrame.Position
+			local newCFrame = CFrame.new(camPos, head.Position)
+
+			Camera.CFrame = Camera.CFrame:Lerp(newCFrame, AIM_SMOOTHNESS)
+		end
+	else
+		-- ⚪ AUCUNE CIBLE
+		stroke.Color = Color3.fromRGB(255,255,255)
+	end
+end)
