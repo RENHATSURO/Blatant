@@ -1,3 +1,4 @@
+-- hello
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
