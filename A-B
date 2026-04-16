@@ -25,7 +25,7 @@ circle.Parent = screenGui
 
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(255,255,255) -- blanc par défaut
+stroke.Color = Color3.fromRGB(255,255,255)
 stroke.Parent = circle
 
 local corner = Instance.new("UICorner")
@@ -41,6 +41,16 @@ local function getScreenCenter()
 		viewport.X / 2,
 		(viewport.Y / 2) - guiInset.Y
 	)
+end
+
+-- 🔵 TEAM CHECK
+local function isEnemy(player)
+	-- si pas de team → tout le monde est ennemi (FFA)
+	if not LocalPlayer.Team or not player.Team then
+		return true
+	end
+	
+	return player.Team ~= LocalPlayer.Team
 end
 
 -- Visibilité (wall check)
@@ -74,7 +84,7 @@ local function getClosestTarget()
 	local screenCenter = getScreenCenter()
 
 	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
+		if player ~= LocalPlayer and isEnemy(player) and player.Character then
 			local head = player.Character:FindFirstChild("Head")
 			local humanoid = player.Character:FindFirstChild("Humanoid")
 
@@ -102,13 +112,11 @@ end
 RunService.RenderStepped:Connect(function()
 	local screenCenter = getScreenCenter()
 
-	-- Position cercle
 	circle.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
 
 	local target = getClosestTarget()
 
 	if target and target.Character then
-		-- 🔴 CIBLE DÉTECTÉE
 		stroke.Color = Color3.fromRGB(255, 60, 60)
 
 		local head = target.Character:FindFirstChild("Head")
@@ -119,7 +127,6 @@ RunService.RenderStepped:Connect(function()
 			Camera.CFrame = Camera.CFrame:Lerp(newCFrame, AIM_SMOOTHNESS)
 		end
 	else
-		-- ⚪ AUCUNE CIBLE
 		stroke.Color = Color3.fromRGB(255,255,255)
 	end
 end)
